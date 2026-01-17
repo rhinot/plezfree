@@ -40,26 +40,8 @@ import 'utils/language_codes.dart';
 import 'i18n/strings.g.dart';
 import 'focus/input_mode_tracker.dart';
 
-// Workaround for Flutter bug #177992: iPadOS 26.1+ misinterprets fake touch events
-// at (0,0) as barrier taps, causing modals to dismiss immediately.
-// Remove when Flutter PR #179643 is merged.
-bool _zeroOffsetPointerGuardInstalled = false;
-
-void _installZeroOffsetPointerGuard() {
-  if (_zeroOffsetPointerGuardInstalled) return;
-  GestureBinding.instance.pointerRouter.addGlobalRoute(_absorbZeroOffsetPointerEvent);
-  _zeroOffsetPointerGuardInstalled = true;
-}
-
-void _absorbZeroOffsetPointerEvent(PointerEvent event) {
-  if (event.position == Offset.zero) {
-    GestureBinding.instance.cancelPointer(event.pointer);
-  }
-}
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  _installZeroOffsetPointerGuard(); // Workaround for iPadOS 26.1+ modal dismissal bug
 
   // Initialize settings first to get saved locale
   final settings = await SettingsService.getInstance();
