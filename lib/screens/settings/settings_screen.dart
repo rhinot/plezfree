@@ -65,6 +65,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _enableDiscordRPC = false;
   bool _matchContentFrameRate = false;
 
+  // Download path display
+  String _downloadPathDisplay = '...';
+
   // Update checking state
   bool _isCheckingForUpdate = false;
   Map<String, dynamic>? _updateInfo;
@@ -81,7 +84,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _keyboardService = await KeyboardShortcutsService.getInstance();
     }
 
+    final downloadPath = await DownloadStorageService.instance.getCurrentDownloadPathDisplay();
+
     setState(() {
+      _downloadPathDisplay = downloadPath;
       _enableDebugLogging = _settingsService.getEnableDebugLogging();
       _enableHardwareDecoding = _settingsService.getEnableHardwareDecoding();
       _bufferSize = _settingsService.getBufferSize();
@@ -422,19 +428,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           // Download location picker - not available on iOS
           if (!Platform.isIOS)
-            FutureBuilder<String>(
-              future: storageService.getCurrentDownloadPathDisplay(),
-              builder: (context, snapshot) {
-                final currentPath = snapshot.data ?? '...';
-
-                return ListTile(
-                  leading: const AppIcon(Symbols.folder_rounded, fill: 1),
-                  title: Text(isCustom ? t.settings.downloadLocationCustom : t.settings.downloadLocationDefault),
-                  subtitle: Text(currentPath, maxLines: 2, overflow: TextOverflow.ellipsis),
-                  trailing: const AppIcon(Symbols.chevron_right_rounded, fill: 1),
-                  onTap: () => _showDownloadLocationDialog(),
-                );
-              },
+            ListTile(
+              leading: const AppIcon(Symbols.folder_rounded, fill: 1),
+              title: Text(isCustom ? t.settings.downloadLocationCustom : t.settings.downloadLocationDefault),
+              subtitle: Text(_downloadPathDisplay, maxLines: 2, overflow: TextOverflow.ellipsis),
+              trailing: const AppIcon(Symbols.chevron_right_rounded, fill: 1),
+              onTap: () => _showDownloadLocationDialog(),
             ),
           SwitchListTile(
             secondary: const AppIcon(Symbols.wifi_rounded, fill: 1),
@@ -465,14 +464,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Text(t.settings.downloadLocationDescription),
             const SizedBox(height: 16),
-            FutureBuilder<String>(
-              future: storageService.getCurrentDownloadPathDisplay(),
-              builder: (context, snapshot) {
-                return Text(
-                  t.settings.currentPath(path: snapshot.data ?? '...'),
-                  style: Theme.of(context).textTheme.bodySmall,
-                );
-              },
+            Text(
+              t.settings.currentPath(path: _downloadPathDisplay),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
@@ -532,9 +526,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         // Save the setting
         await _settingsService.setCustomDownloadPath(selectedPath, type: pathType);
         await DownloadStorageService.instance.refreshCustomPath();
+        final displayPath = await DownloadStorageService.instance.getCurrentDownloadPathDisplay();
 
         if (mounted) {
-          setState(() {});
+          setState(() {
+            _downloadPathDisplay = displayPath;
+          });
           showSuccessSnackBar(context, t.settings.downloadLocationChanged);
         }
       }
@@ -548,9 +545,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _resetDownloadLocation() async {
     await _settingsService.setCustomDownloadPath(null);
     await DownloadStorageService.instance.refreshCustomPath();
+    final displayPath = await DownloadStorageService.instance.getCurrentDownloadPathDisplay();
 
     if (mounted) {
-      setState(() {});
+      setState(() {
+        _downloadPathDisplay = displayPath;
+      });
       showAppSnackBar(context, t.settings.downloadLocationReset);
     }
   }
