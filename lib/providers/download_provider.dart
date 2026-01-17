@@ -81,6 +81,19 @@ class DownloadProvider extends ChangeNotifier {
 
       // Load all downloads from database
       final downloads = await _downloadManager.getAllDownloads();
+
+      // Collect keys for batch fetching
+      final Set<String> metadataKeys = {};
+      for (final item in downloads) {
+        metadataKeys.add(apiCache.buildKey(item.serverId, '/library/metadata/${item.ratingKey}'));
+      }
+
+      // Batch fetch all metadata
+      final batchMetadata = await apiCache.getBatch(metadataKeys);
+
+      // Second pass for parent metadata keys (shows/seasons)
+      final Set<String> parentMetadataKeys = {};
+
       for (final item in downloads) {
         _downloads[item.globalKey] = DownloadProgress(
           globalKey: item.globalKey,
@@ -93,17 +106,61 @@ class DownloadProvider extends ChangeNotifier {
         // Store Plex thumb path reference (file path computed from hash when needed)
         _artworkPaths[item.globalKey] = DownloadedArtwork(thumbPath: item.thumbPath);
 
-        // Load metadata from API cache (base endpoint - chapters/markers included in data)
-        final cached = await apiCache.get(item.serverId, '/library/metadata/${item.ratingKey}');
+        // Load metadata from batch result
+        final cacheKey = apiCache.buildKey(item.serverId, '/library/metadata/${item.ratingKey}');
+        final cached = batchMetadata[cacheKey];
+
         final firstMetadata = PlexCacheParser.extractFirstMetadata(cached);
         if (firstMetadata != null) {
           final metadata = PlexMetadata.fromJson(firstMetadata).copyWith(serverId: item.serverId);
           _metadata[item.globalKey] = metadata;
 
-          // For episodes, also load parent (show and season) metadata
+          // For episodes, collect parent keys to fetch in next batch
           if (metadata.isEpisode) {
-            await _loadParentMetadataFromCache(metadata, apiCache);
+            final serverId = metadata.serverId;
+            if (serverId != null) {
+              if (metadata.grandparentRatingKey != null) {
+                // Check if we already have it (e.g. from another episode of same show)
+                // Note: We check _metadata first, but since we are iterating, we might not have processed it yet.
+                // However, parentMetadataKeys is a Set, so duplicates are handled.
+                // We will check _metadata again before processing the parent batch result.
+                parentMetadataKeys.add(apiCache.buildKey(serverId, '/library/metadata/${metadata.grandparentRatingKey}'));
+              }
+              if (metadata.parentRatingKey != null) {
+                parentMetadataKeys.add(apiCache.buildKey(serverId, '/library/metadata/${metadata.parentRatingKey}'));
+              }
+            }
           }
+        }
+      }
+
+      // Batch fetch parent metadata if needed
+      if (parentMetadataKeys.isNotEmpty) {
+        final parentBatch = await apiCache.getBatch(parentMetadataKeys);
+
+        // Process parent metadata
+        for (final entry in parentBatch.entries) {
+           final cached = entry.value;
+           final firstMetadata = PlexCacheParser.extractFirstMetadata(cached);
+
+           if (firstMetadata != null) {
+             // We need serverId. Since the key is serverId:endpoint, we can extract it.
+             final keyParts = entry.key.split(':');
+             if (keyParts.isNotEmpty) {
+               final serverId = keyParts[0];
+               final metadata = PlexMetadata.fromJson(firstMetadata).copyWith(serverId: serverId);
+
+               // Use ratingKey from metadata to construct globalKey
+               // (This is safer than parsing from cacheKey)
+               final globalKey = '$serverId:${metadata.ratingKey}';
+
+               _metadata[globalKey] = metadata;
+
+               if (metadata.thumb != null) {
+                 _artworkPaths[globalKey] = DownloadedArtwork(thumbPath: metadata.thumb);
+               }
+             }
+           }
         }
       }
 
@@ -149,48 +206,6 @@ class DownloadProvider extends ChangeNotifier {
       appLogger.d('Persisted episode count for $globalKey: $count');
     } catch (e) {
       appLogger.w('Failed to persist episode count for $globalKey', error: e);
-    }
-  }
-
-  /// Load parent (show and season) metadata from cache for an episode
-  Future<void> _loadParentMetadataFromCache(PlexMetadata episode, PlexApiCache apiCache) async {
-    final serverId = episode.serverId;
-    if (serverId == null) return;
-
-    // Load show metadata (base endpoint)
-    final showRatingKey = episode.grandparentRatingKey;
-    if (showRatingKey != null) {
-      final showGlobalKey = '$serverId:$showRatingKey';
-      if (!_metadata.containsKey(showGlobalKey)) {
-        final cached = await apiCache.get(serverId, '/library/metadata/$showRatingKey');
-        final showJson = PlexCacheParser.extractFirstMetadata(cached);
-        if (showJson != null) {
-          final showMetadata = PlexMetadata.fromJson(showJson).copyWith(serverId: serverId);
-          _metadata[showGlobalKey] = showMetadata;
-          // Store artwork reference for offline display
-          if (showMetadata.thumb != null) {
-            _artworkPaths[showGlobalKey] = DownloadedArtwork(thumbPath: showMetadata.thumb);
-          }
-        }
-      }
-    }
-
-    // Load season metadata (base endpoint)
-    final seasonRatingKey = episode.parentRatingKey;
-    if (seasonRatingKey != null) {
-      final seasonGlobalKey = '$serverId:$seasonRatingKey';
-      if (!_metadata.containsKey(seasonGlobalKey)) {
-        final cached = await apiCache.get(serverId, '/library/metadata/$seasonRatingKey');
-        final seasonJson = PlexCacheParser.extractFirstMetadata(cached);
-        if (seasonJson != null) {
-          final seasonMetadata = PlexMetadata.fromJson(seasonJson).copyWith(serverId: serverId);
-          _metadata[seasonGlobalKey] = seasonMetadata;
-          // Store artwork reference for offline display
-          if (seasonMetadata.thumb != null) {
-            _artworkPaths[seasonGlobalKey] = DownloadedArtwork(thumbPath: seasonMetadata.thumb);
-          }
-        }
-      }
     }
   }
 

@@ -28,13 +28,13 @@ class PlexApiCache {
   AppDatabase get database => _db;
 
   /// Build cache key from serverId and endpoint
-  String _buildKey(String serverId, String endpoint) {
+  String buildKey(String serverId, String endpoint) {
     return '$serverId:$endpoint';
   }
 
   /// Get cached response for an endpoint
   Future<Map<String, dynamic>?> get(String serverId, String endpoint) async {
-    final key = _buildKey(serverId, endpoint);
+    final key = buildKey(serverId, endpoint);
     final result = await (_db.select(_db.apiCache)..where((t) => t.cacheKey.equals(key))).getSingleOrNull();
 
     if (result != null) {
@@ -43,9 +43,22 @@ class PlexApiCache {
     return null;
   }
 
+  /// Get cached responses for multiple keys
+  Future<Map<String, Map<String, dynamic>>> getBatch(Set<String> keys) async {
+    if (keys.isEmpty) return {};
+
+    final results = await (_db.select(_db.apiCache)..where((t) => t.cacheKey.isIn(keys))).get();
+
+    final Map<String, Map<String, dynamic>> map = {};
+    for (final row in results) {
+      map[row.cacheKey] = jsonDecode(row.data) as Map<String, dynamic>;
+    }
+    return map;
+  }
+
   /// Cache a response for an endpoint
   Future<void> put(String serverId, String endpoint, Map<String, dynamic> data) async {
-    final key = _buildKey(serverId, endpoint);
+    final key = buildKey(serverId, endpoint);
     await _db
         .into(_db.apiCache)
         .insertOnConflictUpdate(
@@ -61,8 +74,8 @@ class PlexApiCache {
   /// Delete cached data for a specific item (when removing a download)
   Future<void> deleteForItem(String serverId, String ratingKey) async {
     // Delete the metadata endpoint
-    final metadataKey = _buildKey(serverId, '/library/metadata/$ratingKey');
-    final childrenKey = _buildKey(serverId, '/library/metadata/$ratingKey/children');
+    final metadataKey = buildKey(serverId, '/library/metadata/$ratingKey');
+    final childrenKey = buildKey(serverId, '/library/metadata/$ratingKey/children');
 
     await (_db.delete(
       _db.apiCache,
@@ -71,7 +84,7 @@ class PlexApiCache {
 
   /// Mark an item as pinned for offline access
   Future<void> pinForOffline(String serverId, String ratingKey) async {
-    final metadataKey = _buildKey(serverId, '/library/metadata/$ratingKey');
+    final metadataKey = buildKey(serverId, '/library/metadata/$ratingKey');
     await (_db.update(
       _db.apiCache,
     )..where((t) => t.cacheKey.equals(metadataKey))).write(const ApiCacheCompanion(pinned: Value(true)));
@@ -79,7 +92,7 @@ class PlexApiCache {
 
   /// Unpin an item
   Future<void> unpinForOffline(String serverId, String ratingKey) async {
-    final metadataKey = _buildKey(serverId, '/library/metadata/$ratingKey');
+    final metadataKey = buildKey(serverId, '/library/metadata/$ratingKey');
     await (_db.update(
       _db.apiCache,
     )..where((t) => t.cacheKey.equals(metadataKey))).write(const ApiCacheCompanion(pinned: Value(false)));
@@ -87,7 +100,7 @@ class PlexApiCache {
 
   /// Check if an item is pinned for offline
   Future<bool> isPinned(String serverId, String ratingKey) async {
-    final metadataKey = _buildKey(serverId, '/library/metadata/$ratingKey');
+    final metadataKey = buildKey(serverId, '/library/metadata/$ratingKey');
     final result = await (_db.select(_db.apiCache)..where((t) => t.cacheKey.equals(metadataKey))).getSingleOrNull();
     return result?.pinned ?? false;
   }
