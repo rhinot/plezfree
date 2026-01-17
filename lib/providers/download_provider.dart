@@ -1007,7 +1007,7 @@ class DownloadProvider extends ChangeNotifier {
 
       final serverId = parts[0];
       final ratingKey = parts[1];
-      final cacheKey = PlexApiCache.buildKey(serverId, '/library/metadata/$ratingKey');
+      final cacheKey = apiCache.buildKey(serverId, '/library/metadata/$ratingKey');
 
       cacheKeys.add(cacheKey);
       cacheKeyToGlobalKey[cacheKey] = globalKey;
