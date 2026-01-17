@@ -998,7 +998,7 @@ class DownloadProvider extends ChangeNotifier {
     int updatedCount = 0;
 
     final Map<String, String> cacheKeyToGlobalKey = {};
-    final List<String> cacheKeys = [];
+    final Set<String> cacheKeys = {};
 
     // 1. Prepare batch request
     for (final globalKey in _metadata.keys.toList()) {
@@ -1012,8 +1012,6 @@ class DownloadProvider extends ChangeNotifier {
       cacheKeys.add(cacheKey);
       cacheKeyToGlobalKey[cacheKey] = globalKey;
     }
-
-    if (cacheKeys.isEmpty) return;
 
     try {
       // 2. Fetch all metadata in one query
