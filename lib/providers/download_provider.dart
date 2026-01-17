@@ -1012,25 +1012,50 @@ class DownloadProvider extends ChangeNotifier {
     final apiCache = PlexApiCache.instance;
     int updatedCount = 0;
 
+    final Map<String, String> cacheKeyToGlobalKey = {};
+    final Set<String> cacheKeys = {};
+
+    // 1. Prepare batch request
     for (final globalKey in _metadata.keys.toList()) {
       final parts = globalKey.split(':');
       if (parts.length != 2) continue;
 
       final serverId = parts[0];
       final ratingKey = parts[1];
+      final cacheKey = apiCache.buildKey(serverId, '/library/metadata/$ratingKey');
 
-      try {
-        final cached = await apiCache.get(serverId, '/library/metadata/$ratingKey');
+      cacheKeys.add(cacheKey);
+      cacheKeyToGlobalKey[cacheKey] = globalKey;
+    }
 
-        final firstMetadata = PlexCacheParser.extractFirstMetadata(cached);
-        if (firstMetadata != null) {
-          final metadata = PlexMetadata.fromJson(firstMetadata);
-          _metadata[globalKey] = metadata.copyWith(serverId: serverId);
-          updatedCount++;
+    try {
+      // 2. Fetch all metadata in one query
+      final results = await apiCache.getBatch(cacheKeys);
+
+      // 3. Process results
+      for (final entry in results.entries) {
+        final cacheKey = entry.key;
+        final cachedData = entry.value;
+        final globalKey = cacheKeyToGlobalKey[cacheKey];
+
+        if (globalKey == null) continue;
+
+        try {
+          final firstMetadata = PlexCacheParser.extractFirstMetadata(cachedData);
+          if (firstMetadata != null) {
+            final metadata = PlexMetadata.fromJson(firstMetadata);
+            final parts = globalKey.split(':');
+            final serverId = parts[0];
+
+            _metadata[globalKey] = metadata.copyWith(serverId: serverId);
+            updatedCount++;
+          }
+        } catch (e) {
+          appLogger.d('Failed to refresh metadata for $globalKey: $e');
         }
-      } catch (e) {
-        appLogger.d('Failed to refresh metadata for $globalKey: $e');
       }
+    } catch (e) {
+      appLogger.e('Failed to batch refresh metadata', error: e);
     }
 
     if (updatedCount > 0) {
