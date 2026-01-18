@@ -1,0 +1,10 @@
+{
+  "name": "plezy",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "flutter test",
+    "lint": "flutter analyze",
+    "build": "dart run build_runner build --delete-conflicting-outputs",
+    "postinstall": "flutter pub get"
+  }
+}
