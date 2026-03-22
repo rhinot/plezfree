@@ -223,18 +223,38 @@ class PlexClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          final token = options.headers['X-Plex-Token'];
-          if (token != null) {
+          final headerToken = options.headers['X-Plex-Token'];
+          final queryToken = options.queryParameters['X-Plex-Token'];
+          final uriToken = options.uri.queryParameters['X-Plex-Token'];
+
+          if (headerToken != null || queryToken != null || uriToken != null) {
             // Reconstruct full URL to check destination
             final fullUrl = options.uri.toString();
             if (!PlexUrlHelper.isSecureDestination(fullUrl, config.baseUrl)) {
               appLogger.w('Security Warning: Attempted to send X-Plex-Token to insecure destination: $fullUrl');
-              // Remove the token
+              // Remove the token from headers
               options.headers.remove('X-Plex-Token');
 
               // Also check query parameters
               if (options.queryParameters.containsKey('X-Plex-Token')) {
                 options.queryParameters.remove('X-Plex-Token');
+              }
+
+              // If the token is baked into the URI path (Dio merges them into options.uri), we need to clear it from the path component.
+              if (uriToken != null) {
+                // Parse just the path string (ignoring options.queryParameters which Dio hasn't merged yet)
+                final originalPathUri = Uri.parse(options.path);
+                if (originalPathUri.queryParameters.containsKey('X-Plex-Token')) {
+                  // Use queryParametersAll (Map<String, List<String>>) to preserve duplicate keys if any exist.
+                  final pathQueryParameters = Map<String, List<String>>.from(originalPathUri.queryParametersAll);
+                  pathQueryParameters.remove('X-Plex-Token');
+
+                  // When queryParameters is an empty map, it correctly strips the query string
+                  // If we passed null, Uri.replace would retain the original query string.
+                  options.path = originalPathUri.replace(
+                    queryParameters: pathQueryParameters.isEmpty ? null : pathQueryParameters,
+                  ).toString();
+                }
               }
             }
           }
