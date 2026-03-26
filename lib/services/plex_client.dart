@@ -249,10 +249,10 @@ class PlexClient {
                   final pathQueryParameters = Map<String, List<String>>.from(originalPathUri.queryParametersAll);
                   pathQueryParameters.remove('X-Plex-Token');
 
-                  // When queryParameters is an empty map, it correctly strips the query string
-                  // If we passed null, Uri.replace would retain the original query string.
+                  // Pass an empty map (not null) when all params are removed — null
+                  // would leave the original query string intact.
                   options.path = originalPathUri.replace(
-                    queryParameters: pathQueryParameters.isEmpty ? null : pathQueryParameters,
+                    queryParameters: pathQueryParameters.isEmpty ? {} : pathQueryParameters,
                   ).toString();
                 }
               }
