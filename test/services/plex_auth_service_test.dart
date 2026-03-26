@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +15,9 @@ void main() {
   late PlexAuthService plexAuthService;
 
   setUp(() async {
+    // Reset singleton for test isolation
+    StorageService.resetForTesting();
+
     // Mock SharedPreferences
     SharedPreferences.setMockInitialValues({});
 
@@ -188,7 +192,7 @@ class HttpMockAdapter implements HttpClientAdapter {
 
     // Check if any key is a substring (simplified matching)
     for (final handlerKey in _handlers.keys) {
-      if (handlerKey.startsWith('${options.method}:') && options.uri.toString().contains(handlerKey.substring(handlerKey.indexOf(':') + 1).split('?')[0])) {
+      if (handlerKey.startsWith('${options.method}:') && options.uri.toString().contains(handlerKey.substring(handlerKey.indexOf(':') + 1).split('?').first)) {
          // This is a very rough check, but might work for 'fetchServers' where we have query params
          return _handlers[handlerKey]!(options);
       }

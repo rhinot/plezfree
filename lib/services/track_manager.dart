@@ -325,7 +325,7 @@ class TrackManager {
   }
 
   /// Handle secondary subtitle track changes — no server save needed.
-  void onSecondarySubtitleTrackChanged(SubtitleTrack track) {
+  void onSecondarySubtitleTrackChanged(SubtitleTrack _) {
     // Secondary subtitle preference is carried via player.state.track.secondarySubtitle
     // which is automatically read during episode navigation. No additional state needed.
   }

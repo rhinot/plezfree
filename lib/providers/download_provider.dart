@@ -11,6 +11,7 @@ import '../services/storage_service.dart';
 import '../services/plex_api_cache.dart';
 import '../services/plex_client.dart';
 import '../utils/app_logger.dart';
+import '../utils/plex_cache_parser.dart';
 import '../utils/global_key_utils.dart';
 
 /// Holds Plex thumb path reference for downloaded artwork.
@@ -967,7 +968,7 @@ class DownloadProvider extends ChangeNotifier {
           final firstMetadata = PlexCacheParser.extractFirstMetadata(cachedData);
           if (firstMetadata != null) {
             final parsedKey = parseGlobalKey(globalKey);
-            final serverId = parsedKey?.serverId ?? globalKey.split(':')[0];
+            final serverId = parsedKey?.serverId ?? globalKey.split(':').first;
             final metadata = PlexMetadata.fromJson(firstMetadata);
 
             _metadata[globalKey] = metadata.copyWith(serverId: serverId);

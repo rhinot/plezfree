@@ -596,7 +596,7 @@ class VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindin
       // immediately instead of waiting for ffmpeg's exponential backoff
       if (!widget.isOffline && !widget.isLive) {
         final serverId = widget.metadata.serverId;
-        if (serverId != null) {
+        if (serverId != null && mounted) {
           final serverManager = context.read<MultiServerProvider>().serverManager;
           bool wasOffline = false;
           _serverStatusSubscription = serverManager.statusStream.listen((statusMap) {
@@ -2581,47 +2581,49 @@ class VideoPlayerScreenState extends State<VideoPlayerScreen> with WidgetsBindin
                     return Video(
                       player: player!,
                       controls: (context) => plexVideoControlsBuilder(
-                        player!,
-                        widget.metadata,
-                        onNext: onNext,
-                        onPrevious: onPrevious,
-                        availableVersions: _availableVersions,
-                        selectedMediaIndex: widget.selectedMediaIndex,
-                        onTogglePIPMode: _togglePIPMode,
-                        boxFitMode: _videoFilterManager?.boxFitMode ?? 0,
-                        onCycleBoxFitMode: _cycleBoxFitMode,
-                        onCycleAudioTrack: _cycleAudioTrack,
-                        onCycleSubtitleTrack: _cycleSubtitleTrack,
-                        onAudioTrackChanged: _onAudioTrackChanged,
-                        onSubtitleTrackChanged: _onSubtitleTrackChanged,
-                        onSecondarySubtitleTrackChanged: _onSecondarySubtitleTrackChanged,
-                        onSeekCompleted: (position) {
-                          // Notify Watch Together of seek for sync
-                          // Note: canControl() check is done in sync manager, not here
-                          // This matches play/pause behavior and avoids timing issues
-                          try {
-                            final watchTogether = this.context.read<WatchTogetherProvider>();
-                            if (watchTogether.isInSession) {
-                              watchTogether.onLocalSeek(position);
-                            }
-                          } catch (e) {
-                            // Watch Together not available, ignore
-                          }
-                        },
-                        onBack: _handleBackButton,
-                        canControl: canControl,
-                        hasFirstFrame: _hasFirstFrame,
-                        playNextFocusNode: _showPlayNextDialog ? _playNextConfirmFocusNode : null,
-                        controlsVisible: _controlsVisible,
-                        shaderService: _shaderService,
-                        // ignore: no-empty-block - setState triggers rebuild to reflect shader change
-                        onShaderChanged: () => setState(() {}),
-                        thumbnailDataBuilder: _bifService?.isAvailable == true ? _getThumbnailData : null,
-                        isLive: widget.isLive,
-                        liveChannelName: _liveChannelName,
-                        isAmbientLightingEnabled: _ambientLightingService?.isEnabled ?? false,
-                        onToggleAmbientLighting: _toggleAmbientLighting,
-                      ),
+                          player!,
+                          widget.metadata,
+                          config: PlexVideoControlsConfiguration(
+                            onNext: onNext,
+                            onPrevious: onPrevious,
+                            availableVersions: _availableVersions,
+                            selectedMediaIndex: widget.selectedMediaIndex,
+                            onTogglePIPMode: _togglePIPMode,
+                            boxFitMode: _videoFilterManager?.boxFitMode ?? 0,
+                            onCycleBoxFitMode: _cycleBoxFitMode,
+                            onCycleAudioTrack: _cycleAudioTrack,
+                            onCycleSubtitleTrack: _cycleSubtitleTrack,
+                            onAudioTrackChanged: _onAudioTrackChanged,
+                            onSubtitleTrackChanged: _onSubtitleTrackChanged,
+                            onSecondarySubtitleTrackChanged: _onSecondarySubtitleTrackChanged,
+                            onSeekCompleted: (position) {
+                              // Notify Watch Together of seek for sync
+                              // Note: canControl() check is done in sync manager, not here
+                              // This matches play/pause behavior and avoids timing issues
+                              try {
+                                final watchTogether = this.context.read<WatchTogetherProvider>();
+                                if (watchTogether.isInSession) {
+                                  watchTogether.onLocalSeek(position);
+                                }
+                              } catch (e) {
+                                // Watch Together not available, ignore
+                              }
+                            },
+                            onBack: _handleBackButton,
+                            canControl: canControl,
+                            hasFirstFrame: _hasFirstFrame,
+                            playNextFocusNode: _showPlayNextDialog ? _playNextConfirmFocusNode : null,
+                            controlsVisible: _controlsVisible,
+                            shaderService: _shaderService,
+                            // ignore: no-empty-block - setState triggers rebuild to reflect shader change
+                            onShaderChanged: () => setState(() {}),
+                            thumbnailDataBuilder: _bifService?.isAvailable == true ? _getThumbnailData : null,
+                            isLive: widget.isLive,
+                            liveChannelName: _liveChannelName,
+                            isAmbientLightingEnabled: _ambientLightingService?.isEnabled ?? false,
+                            onToggleAmbientLighting: _toggleAmbientLighting,
+                          ),
+                        ),
                     );
                   },
                 ),

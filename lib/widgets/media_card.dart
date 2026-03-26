@@ -218,7 +218,7 @@ class MediaCardState extends State<MediaCard> {
 
   /// Grid layout — inlined from former _MediaCardGrid, _PosterOverlay, and
   /// flattened Column. Semantics removed (InkWell provides button semantics).
-  Widget _buildGridCard(BuildContext context, String semanticLabel, String? localPosterPath) {
+  Widget _buildGridCard(BuildContext context, String _, String? localPosterPath) {
     final item = widget.item;
     // Compute actual poster dimensions from card dimensions
     final posterWidth = widget.width != null ? widget.width! - 6 : null; // 3px padding each side
