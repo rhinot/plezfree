@@ -947,6 +947,12 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
 
     final bgColor = showFocus ? colorScheme.inverseSurface : colorScheme.secondaryContainer.withValues(alpha: 0.8);
     final fgColor = showFocus ? colorScheme.onInverseSurface : colorScheme.onSecondaryContainer;
+    final Color starColor;
+    if (showFocus) {
+      starColor = fgColor;
+    } else {
+      starColor = hasRating ? Colors.amber : fgColor;
+    }
 
     return FocusableWrapper(
       focusNode: _ratingChipFocusNode,
@@ -983,7 +989,7 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
               AppIcon(
                 Symbols.star_rounded,
                 fill: hasRating ? 1 : 0,
-                color: showFocus ? fgColor : (hasRating ? Colors.amber : fgColor),
+                color: starColor,
                 size: 16,
               ),
               const SizedBox(width: 4),
@@ -1190,7 +1196,7 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
           : Future.value(<String, dynamic>{});
 
       final results = await Future.wait([seasonsFuture, prefsFuture]);
-      final seasons = results[0] as List<PlexMetadata>;
+      final seasons = results.first as List<PlexMetadata>;
       final prefs = results[1] as Map<String, dynamic>;
 
       // Preserve serverId for each season
@@ -1797,16 +1803,21 @@ class _MediaDetailScreenState extends State<MediaDetailScreen>
           final artworkRef = context.read<DownloadProvider>().getArtworkPaths(episode.globalKey);
           localPosterPath = artworkRef?.getLocalPath(DownloadStorageService.instance, episode.serverId!);
         }
+        final FocusNode? episodeFocusNode;
+        if (index == 0) {
+          episodeFocusNode = _firstEpisodeFocusNode;
+        } else if (index == _episodes.length - 1 && _episodes.length > 1) {
+          episodeFocusNode = _lastEpisodeFocusNode;
+        } else {
+          episodeFocusNode = null;
+        }
+
         return EpisodeCard(
           episode: episode,
           client: client,
           isOffline: widget.isOffline,
           autofocus: false,
-          focusNode: index == 0
-              ? _firstEpisodeFocusNode
-              : index == _episodes.length - 1 && _episodes.length > 1
-                  ? _lastEpisodeFocusNode
-                  : null,
+          focusNode: episodeFocusNode,
           onNavigateUp: index == 0
               ? () {
                   if (!_showEpisodesDirectly) {
