@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+import 'dart:convert';
+>>>>>>> worktree-session-90d311
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plezy/services/storage_service.dart';
@@ -10,9 +14,12 @@ void main() {
   late _MockFlutterSecureStorage mockSecureStorage;
 
   setUp(() async {
+<<<<<<< HEAD
     // Reset singleton for test isolation
     StorageService.resetForTesting();
 
+=======
+>>>>>>> worktree-session-90d311
     // Mock SharedPreferences
     SharedPreferences.setMockInitialValues({});
 
