@@ -646,7 +646,7 @@ class _SettingsScreenState extends State<SettingsScreen> with FocusableTab {
                     ],
                     currentValue: _useExoPlayer,
                   );
-                  if (value != null) {
+                  if (value != null && mounted) {
                     setState(() => _useExoPlayer = value);
                     await _settingsService.setUseExoPlayer(value);
                   }
@@ -747,7 +747,7 @@ class _SettingsScreenState extends State<SettingsScreen> with FocusableTab {
                       .toList(),
                   currentValue: _bufferSize,
                 );
-                if (value != null) {
+                if (value != null && mounted) {
                   setState(() {
                     _bufferSize = value;
                     _settingsService.setBufferSize(value);
@@ -1069,14 +1069,9 @@ class _SettingsScreenState extends State<SettingsScreen> with FocusableTab {
         final displayPath = await DownloadStorageService.instance.getCurrentDownloadPathDisplay();
 
         if (mounted) {
-<<<<<<< HEAD
-          // ignore: no-empty-block - setState triggers rebuild to reflect new download path
-          setState(() {});
-=======
           setState(() {
             _downloadPathDisplay = displayPath;
           });
->>>>>>> dc4b7f3 (Optimize SettingsScreen by caching download path Future)
           showSuccessSnackBar(context, t.settings.downloadLocationChanged);
         }
       }
@@ -1093,14 +1088,9 @@ class _SettingsScreenState extends State<SettingsScreen> with FocusableTab {
     final displayPath = await DownloadStorageService.instance.getCurrentDownloadPathDisplay();
 
     if (mounted) {
-<<<<<<< HEAD
-      // ignore: no-empty-block - setState triggers rebuild to reflect reset path
-      setState(() {});
-=======
       setState(() {
         _downloadPathDisplay = displayPath;
       });
->>>>>>> dc4b7f3 (Optimize SettingsScreen by caching download path Future)
       showAppSnackBar(context, t.settings.downloadLocationReset);
     }
   }
@@ -2116,7 +2106,7 @@ class _SettingsMenuPopupState<T> extends State<_SettingsMenuPopup<T>> {
                   Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
                   Theme.of(context).colorScheme.surface,
                 ),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
                 clipBehavior: Clip.antiAlias,
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minWidth: menuWidth, maxWidth: menuWidth, maxHeight: maxHeight),

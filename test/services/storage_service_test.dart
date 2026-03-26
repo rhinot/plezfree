@@ -1,4 +1,4 @@
-import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plezy/services/storage_service.dart';
@@ -11,6 +11,9 @@ void main() {
   late _MockFlutterSecureStorage mockSecureStorage;
 
   setUp(() async {
+    // Reset singleton for test isolation
+    StorageService.resetForTesting();
+
     // Mock SharedPreferences
     SharedPreferences.setMockInitialValues({});
 

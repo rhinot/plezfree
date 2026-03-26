@@ -62,6 +62,7 @@ const String gitCommit = String.fromEnvironment('GIT_COMMIT');
 // Remove when Flutter PR #179643 is merged.
 bool _zeroOffsetPointerGuardInstalled = false;
 
+// ignore: unused_element
 void _installZeroOffsetPointerGuard() {
   if (_zeroOffsetPointerGuardInstalled) return;
   GestureBinding.instance.pointerRouter.addGlobalRoute(_absorbZeroOffsetPointerEvent);
